@@ -5,6 +5,7 @@
 
 	constexpr int PADDLE_W = 60;
 	constexpr int PADDLE_H = 10;
+	constexpr int PADDLE_WIDTHS[] = {30, 40, 60, 75, 90};
 	constexpr int PADDLE_Y = SCREEN_H - 24;
 	constexpr int PADDLE_SPEED = 4;
 

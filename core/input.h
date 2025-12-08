@@ -7,7 +7,7 @@ struct Keys {
     uint32_t released;  // touches relâchées
 
     bool up, down, left, right;
-    bool A, B, C, RUN;
+    bool A, B, C, D, RUN, MENU, R1, L1;
 };
 
 void input_init();

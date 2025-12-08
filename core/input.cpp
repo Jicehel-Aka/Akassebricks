@@ -24,7 +24,11 @@ void input_poll(Keys& k) {
     k.A   = raw & EXPANDER_KEY_A;
     k.B   = raw & EXPANDER_KEY_B;
     k.C   = raw & EXPANDER_KEY_C;
+    k.D   = raw & EXPANDER_KEY_D;
     k.RUN = raw & EXPANDER_KEY_RUN;
+	k.MENU= raw & EXPANDER_KEY_MENU;
+	k.R1  = raw & EXPANDER_KEY_R1;
+	k.L1  = raw & EXPANDER_KEY_L1;
 }
 
 bool isLongPress(const Keys& k, int key) {

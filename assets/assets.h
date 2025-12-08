@@ -11,8 +11,5 @@ extern SpriteAtlas atlas_powerups;
 // Ball
 extern const uint16_t ball_pixels[];
 
-// Paddle
-extern const uint16_t paddle_pixels[];
-
-
+// Initialisation
 void init_assets();

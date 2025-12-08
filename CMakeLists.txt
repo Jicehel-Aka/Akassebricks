@@ -18,6 +18,8 @@ idf_component_register(
         "assets/assets.cpp"
         "assets/spritesheet_bricks.cpp"
         "assets/spritesheet_powerups.cpp"
+	"assets/assets_paddle.cpp"
+        "assets/spritesheet_paddle.cpp"
         "assets/title_image.cpp"
         # Game
         "game/config.cpp"

@@ -72,6 +72,11 @@ extern "C" void app_main() {
 				gfx_clear(color_black);
 				gfx_flush();
 			}
+			/* if (k.MENU) {
+				//test_paddle_visual();
+				test_paddle_column();
+				vTaskDelay(1000 / portTICK_PERIOD_MS); 
+			} */	
 			break;
 
 		case GameState::State::Playing:
