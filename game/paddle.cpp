@@ -34,11 +34,22 @@ void paddle_update_sprite(Paddle& p) {
 
 
 // Mouvement
-void paddle_move(Paddle& p, bool left, bool right) {
-    if (left)  p.x = std::max(0, p.x - PADDLE_SPEED);
-    if (right) p.x = std::min(SCREEN_W - p.w, p.x + PADDLE_SPEED);
-}
+void paddle_move(Paddle& p, bool left, bool right, int joyx) {
+    int paddle_speed = PADDLE_SPEED; // synamic speed if joy used, fixed with DPAD
+    if ( !left && !right ) // evaluate use joy
+    {
+        if ( joyx<JOYX_MID )
+            left = true;
+        if ( joyx>JOYX_MID )
+            right = true;
+        paddle_speed = 2*PADDLE_SPEED*(joyx-JOYX_MID)/JOYX_MID; // 0 to 2 x PADDLE_SPEED
+        if ( paddle_speed < 0)
+            paddle_speed = -paddle_speed;
+    }
 
+    if (left)  p.x = std::max(0, p.x - paddle_speed);
+    if (right) p.x = std::min(SCREEN_W - p.w, p.x + paddle_speed);
+}
 
 // Activation bonus
 

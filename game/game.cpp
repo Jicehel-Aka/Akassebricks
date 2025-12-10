@@ -95,7 +95,7 @@ void game_update(GameState& g){
     input_poll(k);
 
     // Déplacement paddle (clamp avec largeur dynamique)
-    paddle_move(g.paddle, k.left, k.right);
+    paddle_move(g.paddle, k.left, k.right, k.joxx);
     if (g.paddle.x < 0) g.paddle.x = 0;
     if (g.paddle.x + g.paddle.w > SCREEN_W) g.paddle.x = SCREEN_W - g.paddle.w;
 	
