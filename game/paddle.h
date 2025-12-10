@@ -24,9 +24,8 @@ struct Paddle {
     int laser_timer  = 0;
 };
 
-// Mouvement
-void paddle_move(Paddle& p, bool left, bool right);
-
+// Mouvement DPAD or joy
+void paddle_move(Paddle& p, bool left, bool right, int joyx);
 // Reset complet (début de partie, changement de niveau, perte de vie)
 void paddle_reset(Paddle& p);
 
