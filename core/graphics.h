@@ -44,9 +44,9 @@ extern uint16_t current_text_color;
 // Couleurs usuelles
 #define COLOR_BLACK      0x0000
 #define COLOR_WHITE      0xFFFF
-#define COLOR_RED        0xF800
-#define COLOR_GREEN      0x07E0
-#define COLOR_BLUE       0x001F
+#define COLOR_RED        0x001F
+#define COLOR_GREEN      0x03E0 
+#define COLOR_BLUE       0xF800
 #define COLOR_GRAY       0x84D5
 #define COLOR_DARKGRAY   0x426A
 #define COLOR_PURPLE     0x4012
@@ -55,11 +55,11 @@ extern uint16_t current_text_color;
 #define COLOR_BROWN      0x4479
 #define COLOR_BEIGE      0x96BF
 #define COLOR_YELLOW     0x073E
-#define COLOR_LIGHTGREEN 0x4670
+#define COLOR_LIGHTGREEN 0x07E0  
 #define COLOR_DARKBLUE   0x8200
 #define COLOR_LIGHTBLUE  0xFDCF
 #define COLOR_SILVER     0xBDF7
-#define COLOR_GOLD       0xFEA0
+#define COLOR_GOLD       0x159C
 
 
 void gfx_text(int x, int y, const char* str, unsigned short color);

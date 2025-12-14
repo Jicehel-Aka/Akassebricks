@@ -12,26 +12,16 @@
 void paddle_reset(Paddle& p) {
     p.size = NORMAL;
     p.bonus_flags = BONUS_NONE;
-    p.sticky_timer = 0;
-    p.laser_timer  = 0;
-
+    p.sticky_timer = 0;		// reset Glue timer
+    p.laser_timer  = 0;  	// reset Laser timer
+    p.laser_cooldown = 0; 	// reset Laser cooldown
     // Dimensions via frame (assure cohérence avec planche)
-    const Frame f = paddle_frames[p.size][bonus_to_index(p.bonus_flags)];
     p.w = PADDLE_WIDTHS[NORMAL];
     p.h = paddle_row_h;
 
     p.x = (SCREEN_W - p.w) / 2;
     p.y = PADDLE_Y;
 }
-
-
-// Met à jour dimensions depuis la frame sélectionnée
-void paddle_update_sprite(Paddle& p) {
-    const Frame f = paddle_frames[p.size][bonus_to_index(p.bonus_flags)];
-    p.w = f.w;
-    p.h = f.h;
-}
-
 
 // Mouvement
 void paddle_move(Paddle& p, bool left, bool right, int joyx) {
@@ -50,6 +40,7 @@ void paddle_move(Paddle& p, bool left, bool right, int joyx) {
     if (left)  p.x = std::max(0, p.x - paddle_speed);
     if (right) p.x = std::min(SCREEN_W - p.w, p.x + paddle_speed);
 }
+
 
 // Activation bonus
 

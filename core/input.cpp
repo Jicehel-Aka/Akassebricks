@@ -29,7 +29,7 @@ void input_poll(Keys& k) {
 	k.MENU= raw & EXPANDER_KEY_MENU;
 	k.R1  = raw & EXPANDER_KEY_R1;
 	k.L1  = raw & EXPANDER_KEY_L1;
-    k.joxx = adc_read_joyx();
+	k.joxx = adc_read_joyx();
     k.joxy = adc_read_joyy();
 }
 

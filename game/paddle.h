@@ -22,10 +22,12 @@ struct Paddle {
     // Timers associés aux bonus
     int sticky_timer = 0;
     int laser_timer  = 0;
+	int laser_cooldown = 0; 
 };
 
-// Mouvement DPAD or joy
-void paddle_move(Paddle& p, bool left, bool right, int joyx);
+// Mouvement de la raquette DPAD or joy
+void paddle_move(Paddle& p, bool left, bool right, int joxx);
+
 // Reset complet (début de partie, changement de niveau, perte de vie)
 void paddle_reset(Paddle& p);
 

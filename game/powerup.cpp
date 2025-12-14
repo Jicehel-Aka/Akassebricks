@@ -2,6 +2,7 @@
 #include "config.h"
 #include "assets/assets.h"
 #include "assets_paddle.h"
+#include "game.h"
 #include <algorithm>
 #include <cmath>
 
@@ -81,12 +82,12 @@ void powerup_apply(GameState& g, PowerUp& p) {
 
         case PowerType::StickyPaddle:
             g.paddle.bonus_flags |= BONUS_GLUE;
-            g.paddle.sticky_timer = 1000; // ajuste selon ton tick/frame
+            g.paddle.sticky_timer = 1500; 
             break;
 
         case PowerType::Laser:
             g.paddle.bonus_flags |= BONUS_LASER;
-            g.paddle.laser_timer = 800;
+            g.paddle.laser_timer = 1000;
             break;
 
         case PowerType::MultiBall:

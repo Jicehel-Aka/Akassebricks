@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
-#include "game.h"
+
+struct GameState;
 
 enum class PowerType {
     ExpandPaddle,

@@ -5,6 +5,7 @@
 	#include "assets.h"
 	#include "powerup.h"
 	#include "paddle.h"
+	#include "audio.h"
 	#include "LCD.h"
 	#include "graphics_basic.h"
 	#include <cmath> 
@@ -13,78 +14,145 @@
 	#include <ctime>
 	#include "freertos/FreeRTOS.h"
 	#include "freertos/task.h"
-
+	
 	///--------------------------------
 	// --- Initialisation ---
 	///--------------------------------
+	
+	 void spawn_sticky_ball(GameState& g) {
+		float bx = g.paddle.x + g.paddle.w/2.0f - BALL_SIZE/2.0f;
+		float by = g.paddle.y - BALL_SIZE;
 
+		g.balls.clear();
+		g.balls.push_back(Ball(bx, by, BALL_SPEED_INIT, -BALL_SPEED_INIT, false));
+
+		// Sticky initial : actif et non décrémenté
+		g.paddle.bonus_flags |= BONUS_GLUE;
+		g.paddle.sticky_timer = -1;
+	}
+	
+	void launch_ball(GameState& g) {
+    if (!g.balls.empty()) {
+        auto& b = g.balls[0];
+        b.active = true;
+        b.vx = BALL_SPEED_INIT;
+        b.vy = -BALL_SPEED_INIT;
+        b.last_vx = b.vx;
+        b.last_vy = b.vy;
+    }
+
+    snd_launch.play_tone(659.0f, 120);
+
+    // Si c’était un sticky initial ou que le timer est écoulé, on le retire immédiatement
+    if (g.paddle.sticky_timer == -1) {
+        g.paddle.bonus_flags &= ~BONUS_GLUE;
+        g.paddle.sticky_timer = 0;
+    }
+
+    g.state = GameState::State::Playing;
+}
+	
+	
 	void game_init(GameState& g){
 		std::srand(static_cast<unsigned>(std::time(nullptr)));
-		g.paddle = {SCREEN_W/2 - PADDLE_W/2, PADDLE_Y, PADDLE_W, PADDLE_H};
 
+		// Paddle
+		g.paddle = {SCREEN_W/2 - PADDLE_W/2, PADDLE_Y, PADDLE_W, PADDLE_H};
 		g.paddle.bonus_flags = BONUS_NONE;
 		g.paddle.sticky_timer = 0;
 		g.paddle.laser_timer  = 0;
 
-
+		// State
 		g.lives = 3;
 		g.score = 0;
 
-		g.balls.clear();
-		g.balls.push_back({SCREEN_W/2, SCREEN_H/2, 2.6f, -2.6f, true});
-
+		// Entities
 		g.falling.clear();
 		g.shots.clear();
-		
-		// Initialise le niveau
 
+		// Level
+		g.levelIndex = 0; // si tu utilises levelIndex
 		g.level.generate_grid(BRICK_ROWS, BRICK_COLS, 1);
-		
+
+		// Balle collée initiale
+		spawn_sticky_ball(g);
+		g.state = GameState::State::WaitingBall;
+
 		if (debug) {
 			gfx_text(10, 10, ("DEBUG: Init - Etat=" + std::to_string((int)g.state)).c_str(), color_yellow);
 			gfx_text(10, 30, ("DEBUG: Init - Vies=" + std::to_string(g.lives)).c_str(), color_yellow);
 			gfx_text(10, 50, "DEBUG: Init - generate_grid termine", color_yellow);
-			gfx_flush();              // force l’affichage immédiat
-			vTaskDelay(500 / portTICK_PERIOD_MS); // ~0,5 seconde de pause
+			gfx_flush();
+			vTaskDelay(500 / portTICK_PERIOD_MS);
 		}
-
 	}
 
-	bool collision_with_paddle(const Ball& b, const Paddle& p, int oldBallBottom) {
-		return (b.vy > 0 &&                          // balle descend
-				oldBallBottom <= p.y &&              // balle était au-dessus
-				b.y + b.size >= p.y &&               // balle est passée en dessous
-				b.x + b.size > p.x &&                // chevauchement horizontal
-				b.x < p.x + p.w);
+// --- Collisions plus robustes ---
+
+// Teste si le segment de déplacement d’un objet (old→new) traverse un rectangle cible
+bool swept_overlap(float oldX, float oldY, float newX, float newY,
+                   int objW, int objH,
+                   int rectX, int rectY, int rectW, int rectH) {
+    // Rectangle de l’objet (old et new)
+    float oldLeft   = oldX;
+    float oldRight  = oldX + objW;
+    float oldTop    = oldY;
+    float oldBottom = oldY + objH;
+
+    float newLeft   = newX;
+    float newRight  = newX + objW;
+    float newTop    = newY;
+    float newBottom = newY + objH;
+
+    // Rectangle cible
+    int rx1 = rectX, ry1 = rectY;
+    int rx2 = rectX + rectW, ry2 = rectY + rectH;
+
+    bool overlapX = (std::max(oldLeft, newLeft) < rx2 &&
+                     std::min(oldRight, newRight) > rx1);
+    bool overlapY = (std::max(oldTop, newTop) < ry2 &&
+                     std::min(oldBottom, newBottom) > ry1);
+
+    return overlapX && overlapY;
+}
+
+
+
+	// Balle ↔ Raquette
+	bool collision_with_paddle(const Ball& b, const Paddle& p, const Ball& oldBall) {
+		return (b.vy > 0) &&
+			   swept_overlap(oldBall.x, oldBall.y, b.x, b.y,
+							 b.size, b.size,
+							 p.x, p.y, p.w, p.h);
 	}
 
-	bool collision_ball_brick(const Ball& ball, const Brick& brick) {
-		int r = ball.size / 2; // si size = diamètre, sinon mets directement ball.size
-		return !(ball.x + r < brick.x ||
-				 ball.x - r > brick.x + BRICK_W ||
-				 ball.y + r < brick.y ||
-				 ball.y - r > brick.y + BRICK_H);
+	// Balle ↔ Brique
+	bool collision_ball_brick(const Ball& b, const Brick& brick, const Ball& oldBall) {
+		return swept_overlap(oldBall.x, oldBall.y, b.x, b.y,
+							 b.size, b.size,
+							 brick.x, brick.y, BRICK_W, BRICK_H);
 	}
 
-	bool collision_powerup_paddle(const PowerUp& p, const Paddle& pad) {
-		return !(p.x > pad.x + pad.w ||
-				 p.x + POWERUP_W < pad.x ||
-				 p.y > pad.y + pad.h ||
-				 p.y + POWERUP_H < pad.y);
+	// PowerUp ↔ Raquette
+	bool collision_powerup_paddle(const PowerUp& p, const Paddle& pad, const PowerUp& oldP) {
+		return swept_overlap(oldP.x, oldP.y, p.x, p.y,
+							 POWERUP_W, POWERUP_H,
+							 pad.x, pad.y, pad.w, pad.h);
 	}
 
-	bool collision_projectile_brick(const Projectile& shot, const Brick& brick) {
-		return !(shot.x > brick.x + BRICK_W ||
-				 shot.x + shot.w < brick.x ||
-				 shot.y > brick.y + BRICK_H ||
-				 shot.y + shot.h < brick.y);
-	}
+	bool collision_projectile_brick(const Projectile& shot,
+									const Brick& brick,
+									const Projectile& oldShot) {
+		return swept_overlap(oldShot.x, oldShot.y, shot.x, shot.y,
+							 shot.w, shot.h,
+							 brick.x, brick.y, BRICK_W, BRICK_H);
+	} 
 
-	// Helper: pick a random power-up type within enum bounds
-	static PowerType choose_random_powerup() {
+	PowerType choose_random_powerup() {
 		int count = static_cast<int>(PowerType::POWERUP_COUNT);
 		return static_cast<PowerType>(rand() % count);
 	}
+
 
 	///--------------------------------
 	// --- Mise à jour ---
@@ -98,97 +166,108 @@ void game_update(GameState& g){
     paddle_move(g.paddle, k.left, k.right, k.joxx);
     if (g.paddle.x < 0) g.paddle.x = 0;
     if (g.paddle.x + g.paddle.w > SCREEN_W) g.paddle.x = SCREEN_W - g.paddle.w;
-	
-	// Si le paddle bouge et qu'une balle est collée (inactive), elle doit suivre
-	if (g.paddle.bonus_flags & BONUS_GLUE) {
-		for (auto& b : g.balls) {
-			if (!b.active) {
-				b.x = g.paddle.x + g.paddle.w/2 - BALL_SIZE/2;
-				b.y = g.paddle.y - BALL_SIZE;
-			}
-		}
-	}
+    
+    // Si le paddle bouge et qu'une balle est collée (inactive), elle doit suivre
+    if (g.paddle.bonus_flags & BONUS_GLUE) {
+        for (auto& b : g.balls) {
+            if (!b.active) {
+                b.last_vx = b.vx;
+                b.last_vy = b.vy;
+                b.x = g.paddle.x + g.paddle.w/2 - BALL_SIZE/2;
+                b.y = g.paddle.y - BALL_SIZE;
+            }
+        }
+    }
 
     // Mise à jour des balles
     for (auto& b : g.balls) {
         if (b.active) {
-            int oldBallBottom = b.y + b.size;
+            Ball oldBall = b; // snapshot avant update
             ball_update(b);
 
-            // Si la balle sort de l'écran, on la désactive (perte potentielle)
-            if (b.y > SCREEN_H) {
-                b.active = false;
-                continue;
-            }
+            // Si la balle sort de l'écran
+            if (b.y > SCREEN_H) { b.active = false; continue; }
 
-            // Collision prédictive avec la raquette
-            if (collision_with_paddle(b, g.paddle, oldBallBottom)) {
+            // Collision raquette (robuste)
+            if (collision_with_paddle(b, g.paddle, oldBall)) {
                 if (g.paddle.bonus_flags & BONUS_GLUE) {
-                    // Balle collée (inactive mais conservée)
                     b.active = false;
                     b.x = g.paddle.x + g.paddle.w/2 - BALL_SIZE/2;
                     b.y = g.paddle.y - BALL_SIZE;
+                    snd_stick.play_tone(440.0, 210);
                 } else {
                     b.vy = -fabs(b.vy);
                     float hitPos = (b.x + b.size/2) - (g.paddle.x + g.paddle.w/2);
                     b.vx += hitPos / (g.paddle.w/2);
+                    snd_paddle.play_tone(523.0, 140);
+                }
+            }
+
+            // Collision briques (robuste)
+            for (auto& brick : g.level.bricks) {
+                if (!brick.alive) continue;
+                if (collision_ball_brick(b, brick, oldBall)) {
+                    brick.hp--;
+                    if (brick.hp <= 0) {
+                        brick.alive = false;
+                        g.score += 100;
+                        if (rand() % 6 == 0) {
+                            PowerType type = choose_random_powerup();
+                            g.falling.push_back({(float)brick.x, (float)brick.y, type, 0, 0, true});
+                        }
+                        snd_brick_break.play_tone(220.0, 150);
+                    } else {
+                        snd_brick_hit.play_tone(392.0, 60);
+                    }
+                    b.vy = -b.vy;
+                    break;
                 }
             }
         }
     }
 
-    // Supprimer uniquement les balles inactives qui sont réellement perdues (hors écran)
+    // Supprimer les balles inactives hors écran
     g.balls.erase(std::remove_if(g.balls.begin(), g.balls.end(),
                                  [](const Ball& b){ return !b.active && b.y > SCREEN_H; }),
                   g.balls.end());
 
-    // Si plus aucune balle en jeu (y compris collée), vie perdue
+    // Si plus aucune balle → vie perdue
     if (g.balls.empty()) {
         g.lives--;
         paddle_reset(g.paddle);
+        snd_lost_life.play_tone(196.0, 200);
+        spawn_sticky_ball(g);
         g.state = GameState::State::WaitingBall;
+        return;
     }
 
-    // Collisions balle/brique + spawn powerups
-    bool allDestroyed = true;
-    for (auto& b : g.balls) {
-        for (auto& brick : g.level.bricks) {
-            if (!brick.alive) continue;
-            allDestroyed = false;
-
-            if (collision_ball_brick(b, brick)) {
-                brick.hp--;
-                if (brick.hp <= 0) {
-                    brick.alive = false;
-                    g.score += 100;
-
-                    if (rand() % 6 == 0) {
-                        PowerType type = choose_random_powerup();
-                        PowerUp p{(float)brick.x, (float)brick.y, type, 0, 0, true};
-                        g.falling.push_back(p);
-                    }
-                }
-                b.vy = -b.vy;
-                break;
-            }
-        }
+    // Vérifier si des briques restent
+    bool anyBrickAlive = false;
+    for (const auto& brick : g.level.bricks) {
+        if (brick.alive) { anyBrickAlive = true; break; }
     }
 
-    if (allDestroyed) {
+    // Niveau terminé
+    if (!anyBrickAlive) {
         g.levelIndex++;
         g.level.generate_grid(BRICK_ROWS, BRICK_COLS, 2);
-        g.balls.clear();
         paddle_reset(g.paddle);
+        snd_level_start.play_tone(523.0, 80);
+        snd_level_start.play_tone(659.0, 80);
+        snd_level_start.play_tone(784.0, 120);
+        spawn_sticky_ball(g);
         g.state = GameState::State::WaitingBall;
+        return;
     }
-
-    // Powerups qui tombent
+    
+    // Powerups
     for (auto& p : g.falling) {
         if (!p.active) continue;
+        PowerUp oldP = p; // snapshot avant update
         p.y += 2;
         p.animFrame = (p.animFrame + 1) % 4;
 
-        if (collision_powerup_paddle(p, g.paddle)) {
+        if (collision_powerup_paddle(p, g.paddle, oldP)) {
             powerup_apply(g, p);
         }
         if (p.y > SCREEN_H) p.active = false;
@@ -197,50 +276,67 @@ void game_update(GameState& g){
                                    [](const PowerUp& p){ return !p.active; }),
                     g.falling.end());
 
-    // Laser : tir si actif
-    if ((g.paddle.bonus_flags & BONUS_LASER) && k.A) {
-        Projectile shot{(float)(g.paddle.x + g.paddle.w/2),
-                        (float)g.paddle.y,
-                        0.0f, -3.0f,
-                        2, 6,
-                        true};
-        g.shots.push_back(shot);
+    // Gestion laser
+    if (g.paddle.laser_cooldown > 0) g.paddle.laser_cooldown--;
+    if ((g.paddle.bonus_flags & BONUS_LASER) && k.A && g.paddle.laser_cooldown == 0) {
+        g.shots.push_back({(float)(g.paddle.x + g.paddle.w/2),
+                           (float)g.paddle.y,
+                           0.0f, -3.0f,
+                           2, 6,
+                           true});
+        g.paddle.laser_cooldown = 30;
     }
 
-    // Mise à jour projectiles
-    for (auto& s : g.shots) {
-        if (!s.active) continue;
-        s.y -= 4;
-        if (s.y < 0) { s.active = false; continue; }
-        for (auto& brick : g.level.bricks) {
-            if (brick.alive && collision_projectile_brick(s, brick)) {
-                brick.hp--;
-                if (brick.hp <= 0) { brick.alive = false; g.score += 100; }
-                s.active = false;
-                break;
-            }
-        }
-    }
+    // Projectiles
+	for (auto& s : g.shots) {
+		if (!s.active) continue;
+
+		Projectile oldShot = s;   // snapshot avant déplacement
+		s.y -= 4;
+		if (s.y < 0) { s.active = false; continue; }
+
+		for (auto& brick : g.level.bricks) {
+			if (brick.alive && collision_projectile_brick(s, brick, oldShot)) {
+				brick.hp--;
+				if (brick.hp <= 0) {
+					brick.alive = false;
+					g.score += 100;
+				}
+				s.active = false;
+				break;
+			}
+		}
+	}
     g.shots.erase(std::remove_if(g.shots.begin(), g.shots.end(),
                                  [](const Projectile& s){ return !s.active; }),
                   g.shots.end());
 
-    // Relance Sticky: ne pas retirer le flag, le timer gère la durée
+    // Relance Sticky
     if ((g.paddle.bonus_flags & BONUS_GLUE) && k.A) {
         for (auto& b : g.balls) {
             if (!b.active) {
                 b.active = true;
-                b.vx = 2.6f; b.vy = -2.6f;
+                b.vx = (fabs(b.vx) > 0.01f) ? b.vx : 0.0f;
+                b.vy = -fabs(b.vy);
             }
         }
-        // Laisse BONUS_GLUE actif; il expirera avec le timer
     }
 
-    // Timers des bonus (expiration)
+    // Timers bonus
     if (g.paddle.bonus_flags & BONUS_GLUE) {
-        if (--g.paddle.sticky_timer <= 0) {
-            g.paddle.bonus_flags &= ~BONUS_GLUE;
-            g.paddle.sticky_timer = 0;
+        if (g.paddle.sticky_timer > 0) {
+            if (--g.paddle.sticky_timer <= 0) {
+                bool hasInactive = false;
+                for (const auto& b : g.balls) {
+                    if (!b.active) { hasInactive = true; break; }
+                }
+                if (hasInactive) {
+                    g.paddle.sticky_timer = -1;
+                } else {
+                    g.paddle.bonus_flags &= ~BONUS_GLUE;
+                    g.paddle.sticky_timer = 0;
+                }
+            }
         }
     }
     if (g.paddle.bonus_flags & BONUS_LASER) {
