@@ -191,10 +191,14 @@ int audio_init()
     delay(100);
 
     u16_pitch = f32_pitch;
+    printf("audio_init: before init_i2S\n");
     init_i2S();
+    printf("audio_init: after init_i2S\n");
 
     // Page switch to Page 0
+    printf("audio_init: before first I2C amp write\n");
     audio_amp_write(AUDIO_AMP_REG_PAGE, 0); // W 30 00 00
+    printf("audio_init: after first I2C amp write\n");
     // Assert Software reset (P0, R1, D0=1)
     audio_amp_write(AUDIO_AMP_SOFT_RESET, 1); // W 30 01 01
 

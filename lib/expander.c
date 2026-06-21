@@ -54,7 +54,7 @@ static uint8_t u8_expander_out_data = 0;
 void expander_write(uint8_t u8_data)
 {
     u8_expander_out_data = u8_data |= EXPANDER_KEY; // Key inputs must be stay HIGH
-    esp_err_t ret = i2c_master_transmit(dev_handle0, &u8_expander_out_data, sizeof(u8_expander_out_data), -1);
+    esp_err_t ret = i2c_master_transmit(dev_handle0, &u8_expander_out_data, sizeof(u8_expander_out_data), pdMS_TO_TICKS(100));
     if(ret)
         printf( "I2C wite return %d\n", ret );
 }
@@ -96,9 +96,9 @@ void expander_lcd_rd(uint8_t state)
 uint16_t expander_read()
 {
     uint8_t u8_d1 = 0x55;
-    esp_err_t ret1 = i2c_master_receive(dev_handle1, &u8_d1, sizeof(u8_d1), -1);
+    esp_err_t ret1 = i2c_master_receive(dev_handle1, &u8_d1, sizeof(u8_d1), pdMS_TO_TICKS(100));
     uint8_t u8_d0 = 0x55;
-    esp_err_t ret0 = i2c_master_receive(dev_handle0, &u8_d0, sizeof(u8_d0), -1);
+    esp_err_t ret0 = i2c_master_receive(dev_handle0, &u8_d0, sizeof(u8_d0), pdMS_TO_TICKS(100));
     uint16_t u16_data = u8_d0 + 256*(uint16_t)u8_d1;
     u16_data ^= EXPANDER_KEY_RUN; // Run key active high => active low
     u16_data ^= EXPANDER_KEY;     // all key active low => active high
@@ -127,15 +127,18 @@ void audio_amp_write(uint8_t u8_reg, uint8_t u8_data)
 {
     uint8_t u8_datareg[2] = { u8_reg, u8_data };
 //    u8_data |= EXPANDER_KEY; // Key inputs must be stay HIGH
-    esp_err_t ret = i2c_master_transmit( dev_handle_audio, u8_datareg, sizeof(u8_datareg), -1);
+    printf( "I2C Audio write: reg=0x%02X data=0x%02X ...\n", u8_reg, u8_data );
+    esp_err_t ret = i2c_master_transmit( dev_handle_audio, u8_datareg, sizeof(u8_datareg), pdMS_TO_TICKS(100));
     if(ret)
-        printf( "I2C Audio wite return %d\n", ret );
+        printf( "I2C Audio write FAILED reg=0x%02X data=0x%02X ret=%d\n", u8_reg, u8_data, ret );
+    else
+        printf( "I2C Audio write OK reg=0x%02X data=0x%02X\n", u8_reg, u8_data );
 }
 
 uint8_t audio_amp_read( uint8_t u8_reg )
 {
     uint8_t u8_data = 0;
-    esp_err_t ret = i2c_master_transmit_receive( dev_handle_audio, &u8_reg, sizeof(u8_reg), &u8_data, sizeof(u8_data), -1 );
+    esp_err_t ret = i2c_master_transmit_receive( dev_handle_audio, &u8_reg, sizeof(u8_reg), &u8_data, sizeof(u8_data), pdMS_TO_TICKS(100) );
     if ( ret )
     {
         printf( "ERR : I2C Audio read return %d\n", ret );
@@ -228,9 +231,12 @@ int expander_init()
     #else
     expander_write( EXPANDER_OUT_ENA_3V3 | EXPANDER_AMP_nRESET | EXPANDER_LCD_nRESET | EXPANDER_LCD_nRD );
     #endif
-    expander_write( EXPANDER_OUT_ENA_3V3   );
     delay(100);
-    expander_write( EXPANDER_OUT_ENA_3V3 | EXPANDER_LCD_nRESET  );
+    // NOTE: on conserve EXPANDER_AMP_nRESET actif ici : sinon le DAC TAS2505 reste
+    // en reset matériel jusqu'à audio_init(), ce qui ne pose pas de problème en soi
+    // tant que audio_init() relâche bien le reset avant son premier accès I2C, mais
+    // on évite de le faire retomber puis remonter inutilement pendant l'init expander.
+    expander_write( EXPANDER_OUT_ENA_3V3 | EXPANDER_AMP_nRESET | EXPANDER_LCD_nRESET  );
     delay(100);
     printf( "Done\n" );
 //    test_expander();

@@ -219,7 +219,34 @@ void game_update(GameState& g){
                     } else {
                         snd_brick_hit.play_tone(392.0, 60);
                     }
-                    b.vy = -b.vy;
+
+                    // Détermine l'axe de rebond à partir de la position du centre de
+                    // la balle avant son déplacement (oldBall), par rapport au centre
+                    // de la brique. Cela évite de se fier uniquement au signe de vy,
+                    // qui peut entraîner un double-rebond annulé visuellement si la
+                    // balle reste chevauchée avec une brique encore vivante (hp > 1)
+                    // pendant plusieurs frames consécutives (cf. tunneling niveau 2+).
+                    float ballCenterX = oldBall.x + oldBall.size / 2.0f;
+                    float ballCenterY = oldBall.y + oldBall.size / 2.0f;
+                    float brickCenterX = brick.x + BRICK_W / 2.0f;
+                    float brickCenterY = brick.y + BRICK_H / 2.0f;
+
+                    float dx = ballCenterX - brickCenterX;
+                    float dy = ballCenterY - brickCenterY;
+
+                    // Pénétration relative sur chaque axe (normalisée par la demi-étendue)
+                    float overlapX = (BRICK_W / 2.0f + b.size / 2.0f) - fabs(dx);
+                    float overlapY = (BRICK_H / 2.0f + b.size / 2.0f) - fabs(dy);
+
+                    if (overlapX < overlapY) {
+                        // Rebond horizontal : on sort la balle à gauche ou à droite de la brique
+                        b.vx = -b.vx;
+                        b.x = (dx > 0) ? (brick.x + BRICK_W + 0.1f) : (brick.x - b.size - 0.1f);
+                    } else {
+                        // Rebond vertical : on sort la balle au-dessus ou en dessous de la brique
+                        b.vy = -b.vy;
+                        b.y = (dy > 0) ? (brick.y + BRICK_H + 0.1f) : (brick.y - b.size - 0.1f);
+                    }
                     break;
                 }
             }
