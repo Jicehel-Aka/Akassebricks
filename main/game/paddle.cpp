@@ -42,6 +42,20 @@ void paddle_move(Paddle& p, bool left, bool right, int joyx) {
 }
 
 
+// Met a jour les dimensions (w,h) d'apres la taille courante et garde la
+// raquette dans l'ecran. Le sprite affiche (colonne selon les bonus) est
+// choisi au dessin par draw_paddle a partir de p.size / p.bonus_flags : il n'y
+// a donc rien a mettre en cache ici, seules les dimensions doivent rester
+// coherentes avec la taille (utilisees par le mouvement et les collisions).
+void paddle_update_sprite(Paddle& p) {
+    p.w = PADDLE_WIDTHS[p.size];
+    p.h = paddle_row_h;
+
+    if (p.x < 0) p.x = 0;
+    if (p.x > SCREEN_W - p.w) p.x = SCREEN_W - p.w;
+}
+
+
 // Activation bonus
 
 void activate_sticky(Paddle& p, int duration) {

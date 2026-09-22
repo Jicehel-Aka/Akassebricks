@@ -1,5 +1,5 @@
 /*
-  ui/menu.cpp — Menu moderne AKasseBricks (modal, i18n), inspire de mAKArena.
+  ui/menu.cpp — Menu moderne AKAsseBricks (modal, i18n), inspire de mAKArena.
   Navigation HAUT/BAS, A = valider, GAUCHE/DROITE = regler (volume, langue),
   B = retour. Ouvert par un appui MENU.
 */

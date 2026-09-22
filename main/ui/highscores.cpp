@@ -1,10 +1,12 @@
 /**
  * @file highscores.cpp
- * @brief Meilleurs scores AKasseBricks — stockage SD (8.3), saisie sur fronts.
+ * @brief Meilleurs scores AKAsseBricks — stockage sur carte SD (noms longs),
+ *        saisie des initiales sur fronts de touches.
  *
- * Fichier : /sdcard/AKBRICKS/SCORES.DAT  (noms 8.3 stricts : pas de dependance
- * au LFN, contrairement a l'ancien "/sdcard/AKasseBricks/AKAsseBricks.sco" dont
- * le dossier en nom long ne se creait pas toujours -> rien n'etait persiste).
+ * Fichier : /sdcard/AKAsseBricks/AKAsseBricks.sco
+ * Le chemin utilise des noms longs (LFN), actif via CONFIG_FATFS_LFN_HEAP=y :
+ * le dossier est cree au demarrage (highscores_init), puis les entrees y sont
+ * persistees en binaire (struct HighscoreEntry).
  */
 #include "highscores.h"
 #include "core/graphics.h"
@@ -21,9 +23,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-// Chemin d'origine : le fichier existant sur la carte (D:\AKAsseBricks) contient
-// deja des scores valides -> la sauvegarde fonctionne, on ne change pas le chemin
-// (le LFN est actif : CONFIG_FATFS_LFN_HEAP=y).
+// Noms longs (LFN actif : CONFIG_FATFS_LFN_HEAP=y). Le dossier est cree au
+// demarrage par highscores_init().
 #define HIGHSCORE_DIR  "/sdcard/AKAsseBricks"
 #define HIGHSCORE_FILE "/sdcard/AKAsseBricks/AKAsseBricks.sco"
 
