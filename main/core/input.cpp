@@ -1,5 +1,5 @@
 /*
-  core/input.cpp — Adaptateur entrees AKasseBricks au-dessus de gb_core.
+  core/input.cpp — Adaptateur entrees AKAsseBricks au-dessus de gb_core.
   UNIQUE proprietaire du bus I2C + ADC : seul input_poll() appelle g_core.pool().
   (L'ancienne version lisait l'expander ici ET dans checkReturnToLoader ->
    deux lecteurs concurrents. Le combo loader reutilise desormais Keys.)

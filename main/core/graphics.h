@@ -1,5 +1,5 @@
 /*
-  core/graphics.h — Adaptateur graphique AKasseBricks au-dessus du composant
+  core/graphics.h — Adaptateur graphique AKAsseBricks au-dessus du composant
   gamebuino. L'API historique du jeu est conservee (gfx_*, lcd_draw_bitmap,
   lcd_draw_partial_bitmap, constantes color_*), mais tout passe desormais par
   gb_graphics / gb_ll_lcd. lcd_clear / lcd_refresh / lcd_putpixel / lcd_getpixel
@@ -26,7 +26,7 @@ int  gfx_char_width(char c);
 
 // Blit d'image complete (opaque) et de sprite (sous-rect d'une sprite sheet).
 // Comportement identique a l'ancienne lib : copie pixel par pixel, sans cle de
-// transparence (AKasseBricks n'en utilise pas).
+// transparence (AKAsseBricks n'en utilise pas).
 void lcd_draw_bitmap(const uint16_t* pixels, int w, int h, int dx, int dy);
 void lcd_draw_partial_bitmap(const uint16_t* pixels,
                              int sheetW, int sheetH,

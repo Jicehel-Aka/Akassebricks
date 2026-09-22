@@ -1,5 +1,5 @@
 /*
-  core/audio.h — Adaptateur audio AKasseBricks sur le composant gamebuino.
+  core/audio.h — Adaptateur audio AKAsseBricks sur le composant gamebuino.
 
   gb_audio_player n'a que 4 voix (AUDIO_PLAYER_TRACK_COUNT). On en reserve 3 pour
   les effets, gerees en ROUND-ROBIN par SfxBus : chaque appel play_tone part sur

@@ -1,5 +1,5 @@
 /*
-  core/i18n.h — Localisation AKasseBricks (5 langues), sur le modele de mAKArena.
+  core/i18n.h — Localisation AKAsseBricks (5 langues), sur le modele de mAKArena.
   La police du composant etant ASCII, les textes sont volontairement SANS accent.
   La persistance (langue+volume) est sur SD, voir core/settings.
 */
